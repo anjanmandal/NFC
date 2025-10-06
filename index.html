@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NFC Attendance – Admin Web App (UI Only)</title>
+  <style>
+    :root{
+      --bg:#0b1220;--panel:#0f172a;--panel2:#111827;--text:#e5e7eb;--muted:#93a1b6;--border:#1f2937;--sky:#7dd3fc;--blue:#60a5fa;--emerald:#34d399;--rose:#fb7185;--amber:#f59e0b;--indigo:#818cf8
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 800px at 20% -10%, #10203a 0%, #0b1220 40%, #070b15 100%),var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
+    a{color:inherit;text-decoration:none}
+    .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+    @media (max-width:960px){.app{grid-template-columns:1fr}}
+    /* Sidebar */
+    .sidebar{background:linear-gradient(180deg,var(--panel),var(--panel2));border-right:1px solid var(--border);position:sticky;top:0;height:100vh}
+    @media (max-width:960px){.sidebar{position:static;height:auto}}
+    .brand{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--border)}
+    .brand .logo{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--sky),var(--blue));display:grid;place-items:center;box-shadow:0 0 0 2px rgba(125,211,252,.15)}
+    .nav{padding:10px}
+    .nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid transparent}
+    .nav a:hover{background:#0b1220;border-color:var(--border)}
+    .nav a.active{background:rgba(96,165,250,.10);border-color:#1f3b63}
+    .spacer{height:8px}
+    /* Topbar */
+    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(7,11,21,.8),rgba(7,11,21,.4));backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center}
+    .pill{padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#0b1220}
+    .ok{background:rgba(52,211,153,.12);border-color:#187a59;color:#b7f7da}
+    .warn{background:rgba(245,158,11,.12);border-color:#7a5a18;color:#fde7b2}
+    .bad{background:rgba(251,113,133,.12);border-color:#7a1826;color:#ffd0d7}
+    /* Main */
+    main{max-width:1200px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    .grid-1{grid-template-columns:1fr}
+    @media (max-width:960px){.grid,.grid-3{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--border);font-size:15px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0))}
+    .content{padding:14px 16px}
+    .row{display:flex;gap:10px;align-items:center;margin:8px 0}
+    input,select,textarea{width:100%;background:#0b1220;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;outline:none}
+    textarea{min-height:90px;resize:vertical}
+    input:focus,select:focus,textarea:focus{border-color:#243145;box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+    button{appearance:none;border:1px solid var(--border);background:linear-gradient(180deg,#0f172a,#0b1220);color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:600;letter-spacing:.2px;transition:transform .06s ease,border-color .2s ease,box-shadow .2s ease}
+    button:hover{border-color:#2b3a55;box-shadow:0 0 0 2px rgba(96,165,250,.12) inset}
+    button:active{transform:translateY(1px) scale(.99)}
+    .btn-primary{background:linear-gradient(180deg,#166534,#065f46);border-color:#166534;box-shadow:0 0 0 2px rgba(34,197,94,.12) inset}
+    .btn-danger{background:linear-gradient(180deg,#7f1d1d,#641515);border-color:#7f1d1d;box-shadow:0 0 0 2px rgba(239,68,68,.12) inset}
+    .btn-accent{background:linear-gradient(180deg,#1e3a8a,#1e40af);border-color:#1e3a8a;box-shadow:0 0 0 2px rgba(96,165,250,.12) inset}
+    .kpi{display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--border);border-radius:14px;background:#0b1220}
+    .kpi b{font-size:18px}
+    .table{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .table th,.table td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left}
+    .table th{background:#0f172a;color:#cbd5e1}
+    .label{padding:4px 8px;border:1px solid var(--border);border-radius:999px;font-size:12px}
+    .label.ok{border-color:#187a59;background:rgba(52,211,153,.12);color:#b7f7da}
+    .label.late{border-color:#7a5a18;background:rgba(245,158,11,.12);color:#fde7b2}
+    .label.abs{border-color:#2b3a55;background:rgba(148,163,184,.12);color:#cbd5e1}
+    .label.exc{border-color:#4c1d95;background:rgba(129,140,248,.12);color:#ddd9ff}
+    .flex{display:flex;gap:8px;align-items:center}
+    .between{display:flex;justify-content:space-between;align-items:center}
+    .right{margin-left:auto}
+    .muted{color:var(--muted)}
+    .chip{background:rgba(125,211,252,.12);border:1px solid #1f3b63;color:#c7ebff;padding:6px 10px;border-radius:999px;font-size:12px}
+    .toast{position:fixed;bottom:16px;right:16px;background:#0b1220;border:1px solid var(--border);padding:12px 14px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal .dialog{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:16px;max-width:650px;width:100%;overflow:hidden}
+    .modal header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700}
+    .modal .body{padding:14px 16px}
+    .modal .actions{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">📶</div>
+        <div>
+          <div style="font-weight:800">NFC Attendance</div>
+          <div class="muted" style="font-size:12px">Instructor Console</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <a href="#/dashboard" class="active">🏠 Dashboard</a>
+        <a href="#/session">🎬 Session</a>
+        <a href="#/roster">👥 Roster</a>
+        <a href="#/canvas">🧭 Canvas Sync</a>
+        <a href="#/readers">📡 Readers</a>
+        <a href="#/passes">🎫 Pass Lifecycle</a>
+        <a href="#/reports">📈 Reports</a>
+        <a href="#/audit">🔏 Audit Log</a>
+        <div class="spacer"></div>
+        <a href="#/settings">⚙️ Settings</a>
+        <a href="#/logout">🚪 Logout</a>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div>
+      <div class="topbar">
+        <div class="wrap">
+          <div class="pill">Course: <b id="courseLabel">CSCI 201 — Data Structures</b></div>
+          <div class="pill ok" id="readerStatus">Reader Online</div>
+          <div class="pill" id="nonceStatus">Nonce: fresh</div>
+          <div class="pill" id="syncStatus">Canvas: idle</div>
+          <div class="right"></div>
+          <button id="openHelp">❓ Help</button>
+        </div>
+      </div>
+
+      <main>
+        <!-- DASHBOARD -->
+        <section class="view" id="view-dashboard">
+          <div class="grid-3 grid">
+            <div class="card"><h3>Today</h3><div class="content grid">
+              <div class="kpi"><b id="kpi-present">0</b> Present</div>
+              <div class="kpi"><b id="kpi-late">0</b> Late</div>
+              <div class="kpi"><b id="kpi-absent">0</b> Absent</div>
+            </div></div>
+            <div class="card"><h3>Session Control</h3><div class="content">
+              <div class="row">
+                <select id="courseSelect"></select>
+                <input id="windowMins" type="number" min="5" value="15" style="width:100px"/>
+                <label class="muted">min window</label>
+                <input id="lateMins" type="number" min="0" value="10" style="width:100px"/>
+                <label class="muted">late after</label>
+              </div>
+              <div class="row">
+                <button class="btn-primary" id="btnOpen">Open Session</button>
+                <button class="btn-danger" id="btnClose" disabled>Close Session</button>
+                <button id="btnReset">Reset Roster</button>
+              </div>
+              <div class="muted">Tip: Opening a session starts accepting NFC taps for the selected course.</div>
+            </div></div>
+            <div class="card"><h3>Quick Actions</h3><div class="content">
+              <div class="row">
+                <button id="btnExportCSV" class="btn-accent">Export CSV</button>
+                <button id="btnPrint">Print Roster</button>
+                <button id="btnSyncCanvas">Sync to Canvas</button>
+              </div>
+              <div class="row">
+                <button id="btnGenQR">Generate Fallback QR</button>
+                <button id="btnManual">Manual Mark</button>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="grid" style="margin-top:16px">
+            <div class="card"><h3>Live Tap Feed</h3><div class="content">
+              <div id="tapFeed" class="muted">No taps yet.</div>
+            </div></div>
+            <div class="card"><h3>Recent Sessions</h3><div class="content" id="recentSessions">
+              <div class="muted">No previous sessions yet (mock).</div>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- SESSION VIEW -->
+        <section class="view" id="view-session" hidden>
+          <div class="grid">
+            <div class="card"><h3>Open/Close Session</h3><div class="content">
+              <div class="row">
+                <label class="muted">Course</label>
+                <select id="courseSelect2"></select>
+              </div>
+              <div class="row">
+                <label class="muted">Attendance Window</label>
+                <input id="windowMins2" type="number" min="5" value="15" style="width:120px"/>
+                <label class="muted">minutes</label>
+              </div>
+              <div class="row">
+                <label class="muted">Late after</label>
+                <input id="lateMins2" type="number" min="0" value="10" style="width:120px"/>
+                <label class="muted">minutes</label>
+              </div>
+              <div class="row">
+                <button class="btn-primary" id="btnOpen2">Open Session</button>
+                <button class="btn-danger" id="btnClose2" disabled>Close Session</button>
+              </div>
+              <div class="muted">Status: <span id="sessionStatus">Closed</span></div>
+            </div></div>
+            <div class="card"><h3>Session Notes</h3><div class="content">
+              <textarea id="sessionNotes" placeholder="Optional notes for today…"></textarea>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- ROSTER VIEW -->
+        <section class="view" id="view-roster" hidden>
+          <div class="card"><h3>Class Roster</h3><div class="content">
+            <div class="row between">
+              <div class="flex">
+                <input id="search" placeholder="Search by name or ID…" style="width:280px"/>
+                <select id="filterStatus" style="width:160px">
+                  <option value="ALL">All</option>
+                  <option value="PRESENT">Present</option>
+                  <option value="LATE">Late</option>
+                  <option value="ABSENT">Absent</option>
+                  <option value="EXCUSED">Excused</option>
+                </select>
+              </div>
+              <div class="flex">
+                <button id="btnExcuse">Mark Excused</button>
+                <button id="btnPresent">Mark Present</button>
+                <button id="btnAbsent">Mark Absent</button>
+              </div>
+            </div>
+            <table class="table" id="rosterTable" aria-label="Class roster table"></table>
+          </div></div>
+        </section>
+
+        <!-- CANVAS VIEW -->
+        <section class="view" id="view-canvas" hidden>
+          <div class="grid">
+            <div class="card"><h3>Canvas Sync</h3><div class="content">
+              <div class="row"><div>Assignment Name</div><input id="canvasAssignment" value="Attendance"/></div>
+              <div class="row"><div>Publish on Close</div><select id="publishOnClose"><option value="yes">Yes</option><option value="no">No</option></select></div>
+              <div class="row"><button id="btnSyncCanvas2" class="btn-accent">Sync Now</button><div id="canvasStatusText" class="muted"></div></div>
+              <div class="muted">When a session closes, scores (1/0) will be sent to Canvas for the mapped course.</div>
+            </div></div>
+            <div class="card"><h3>Sync History</h3><div class="content" id="syncHistory"></div></div>
+          </div>
+        </section>
+
+        <!-- READERS VIEW -->
+        <section class="view" id="view-readers" hidden>
+          <div class="card"><h3>NFC Readers</h3><div class="content" id="readersList"></div></div>
+        </section>
+
+        <!-- PASSES VIEW -->
+        <section class="view" id="view-passes" hidden>
+          <div class="card"><h3>Pass Lifecycle</h3><div class="content">
+            <div class="row"><input id="passSearch" placeholder="Search student…" style="width:280px"/><button id="btnIssuePass">Issue New Pass</button><button id="btnRevokePass" class="btn-danger">Revoke</button></div>
+            <div id="passList" class="muted">No passes (mock).</div>
+          </div></div>
+        </section>
+
+        <!-- REPORTS VIEW -->
+        <section class="view" id="view-reports" hidden>
+          <div class="card"><h3>Reports</h3><div class="content">
+            <div class="row"><select id="reportType"><option>Attendance by Session</option><option>Attendance by Student</option></select><button id="btnRunReport" class="btn-accent">Run</button><button id="btnExportReport">Export CSV</button></div>
+            <div id="reportArea" class="muted">Run a report to view results.</div>
+          </div></div>
+        </section>
+
+        <!-- AUDIT VIEW -->
+        <section class="view" id="view-audit" hidden>
+          <div class="card"><h3>Audit Log</h3><div class="content" id="auditList"></div></div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="view" id="view-settings" hidden>
+          <div class="grid">
+            <div class="card"><h3>General</h3><div class="content">
+              <div class="row"><div>Time Zone</div><select id="tz"><option>America/Chicago (CT)</option><option>America/New_York (ET)</option></select></div>
+              <div class="row"><div>Theme</div><select id="theme"><option>Dark</option><option>Light</option></select></div>
+              <div class="row"><div>Privacy</div><select id="privacy"><option>Rotate IDs</option><option>Static IDs</option></select></div>
+            </div></div>
+            <div class="card"><h3>Security</h3><div class="content">
+              <div class="row"><div>Key Rotation</div><select id="keyRotation"><option>Each Term</option><option>Monthly</option></select></div>
+              <div class="row"><div>Require Reader TLS</div><select id="requireTLS"><option>Yes</option><option>No</option></select></div>
+              <div class="row"><div>Geofence</div><select id="geofence"><option>Building-level</option><option>None</option></select></div>
+            </div></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal" id="modalManual">
+    <div class="dialog">
+      <header>Manual Mark</header>
+      <div class="body">
+        <div class="row"><input id="manualSearch" placeholder="Search by name or ID…"/></div>
+        <div id="manualList" class="muted">Type to search…</div>
+      </div>
+      <div class="actions">
+        <button id="manualCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // --- Mock data ---
+  const courses = [
+    { id: "cs201", code: "CSCI 201", title: "Data Structures", canvasCourseId: "8675309" },
+    { id: "cs220", code: "CSCI 220", title: "Operating Systems", canvasCourseId: "5550101" },
+    { id: "cs315", code: "CSCI 315", title: "Networks", canvasCourseId: "9991212" },
+  ];
+  let activeCourseId = courses[0].id;
+  let sessionOpen = false;
+  let lateThresholdMins = 10;
+  let windowMins = 15;
+  let canvasSync = 'idle';
+  let readerOnline = true;
+
+  const roster = [
+    { id: 's1', name:'Alex Johnson', sid:'U12345', status:'ABSENT', t:null },
+    { id: 's2', name:'Priya Patel', sid:'U72611', status:'ABSENT', t:null },
+    { id: 's3', name:'Marcus Lee', sid:'U45671', status:'ABSENT', t:null },
+    { id: 's4', name:'Sara Ahmed', sid:'U08891', status:'ABSENT', t:null },
+    { id: 's5', name:'Diego Morales', sid:'U33992', status:'ABSENT', t:null },
+    { id: 's6', name:'Yuna Kim', sid:'U44100', status:'ABSENT', t:null },
+    { id: 's7', name:'Emma Thompson', sid:'U88521', status:'ABSENT', t:null },
+    { id: 's8', name:'Mohammed Khan', sid:'U77231', status:'ABSENT', t:null },
+    { id: 's9', name:'Jamal Brown', sid:'U23312', status:'ABSENT', t:null },
+    { id: 's10', name:'Liu Wei', sid:'U76544', status:'ABSENT', t:null },
+  ];
+  const taps = []; // recent taps
+  const audit = [];
+  const syncHistory = [];
+  const readers = [
+    { id:'r1', room:'ENGR 210', lastSeen: new Date(), firmware:'1.2.4', online:true },
+    { id:'r2', room:'ENGR 110', lastSeen: new Date(Date.now()-1000*60*8), firmware:'1.2.4', online:false },
+  ];
+
+  // --- Helpers ---
+  const $ = sel => document.querySelector(sel);
+  const $all = sel => Array.from(document.querySelectorAll(sel));
+  const fmt = n => String(n).padStart(2,'0');
+  const timeStr = d => `${fmt(d.getHours())}:${fmt(d.getMinutes())}:${fmt(d.getSeconds())}`;
+  function toast(msg){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+
+  function setNav(){
+    const hash = location.hash || '#/dashboard';
+    $all('.nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href')===hash));
+    $all('.view').forEach(v => v.hidden = true);
+    const viewId = '#view-'+hash.slice(2);
+    const el = document.querySelector(viewId) || $('#view-dashboard');
+    el.hidden = false;
+  }
+
+  function populateCourseSelects(){
+    const opts = courses.map(c=>`<option value="${c.id}">${c.code} — ${c.title}</option>`).join('');
+    $('#courseSelect').innerHTML = opts; $('#courseSelect').value = activeCourseId;
+    $('#courseSelect2').innerHTML = opts; $('#courseSelect2').value = activeCourseId;
+  }
+
+  function updateTopbar(){
+    const c = courses.find(c=>c.id===activeCourseId);
+    $('#courseLabel').textContent = `${c.code} — ${c.title}`;
+    $('#readerStatus').className = 'pill '+(readerOnline?'ok':'bad');
+    $('#readerStatus').textContent = readerOnline? 'Reader Online' : 'Reader Offline (buffering)';
+    $('#syncStatus').textContent = `Canvas: ${canvasSync}`;
+  }
+
+  function updateKPIs(){
+    const present = roster.filter(r=>r.status==='PRESENT').length;
+    const late = roster.filter(r=>r.status==='LATE').length;
+    const abs = roster.length - present - late - roster.filter(r=>r.status==='EXCUSED').length;
+    $('#kpi-present').textContent = present;
+    $('#kpi-late').textContent = late;
+    $('#kpi-absent').textContent = abs;
+  }
+
+  function renderFeed(){
+    const box = $('#tapFeed');
+    if(!taps.length){ box.textContent='No taps yet.'; return; }
+    box.innerHTML = taps.slice(0,25).map(t=>`<div class="row"><span class="label ${t.status==='PRESENT'?'ok':t.status==='LATE'?'late':'abs'}">${t.status}</span> <b>${t.name}</b> <span class="muted">${t.sid}</span> <span class="right muted">${timeStr(t.ts)}</span></div>`).join('');
+  }
+
+  function renderReaders(){
+    const box = $('#readersList');
+    box.innerHTML = readers.map(r=>`<div class="row between" style="border-bottom:1px solid var(--border);padding:10px 0">
+      <div class="flex"><div class="chip">${r.id}</div><div><div><b>${r.room}</b></div><div class="muted">FW ${r.firmware}</div></div></div>
+      <div>${r.online?'<span class="label ok">Online</span>':'<span class="label abs">Offline</span>'} <span class="muted">Last seen ${timeStr(r.lastSeen)}</span></div>
+      <div class="flex"><button>Reboot</button><button>Update FW</button></div>
+    </div>`).join('');
+  }
+
+  function renderAudit(){
+    const box = $('#auditList');
+    if(!audit.length){ box.innerHTML = '<div class="muted">No audit events yet.</div>'; return; }
+    box.innerHTML = audit.slice(-50).reverse().map(a=>`<div class="row" style="border-bottom:1px solid var(--border);padding:8px 0"><div class="chip">${a.type}</div><div>${a.msg}</div><div class="right muted">${timeStr(a.ts)}</div></div>`).join('');
+  }
+
+  function renderRosterTable(){
+    const q = $('#search').value.trim().toLowerCase();
+    const status = $('#filterStatus').value;
+    const rows = roster.filter(r=>{
+      const match = !q || r.name.toLowerCase().includes(q) || r.sid.toLowerCase().includes(q);
+      const ok = status==='ALL' || r.status===status;
+      return match && ok;
+    });
+    const head = `<tr><th style="width:34px"><input type="checkbox" id="selAll"></th><th>Name</th><th>Student ID</th><th>Status</th><th>Time</th><th>Actions</th></tr>`;
+    const body = rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" class="selRow"></td>
+      <td>${r.name}</td>
+      <td>${r.sid}</td>
+      <td>${labelStatus(r.status)}</td>
+      <td>${r.t?timeStr(r.t):'-'}</td>
+      <td><button data-act="present">Present</button> <button data-act="late">Late</button> <button data-act="absent">Absent</button> <button data-act="excused">Excused</button></td>
+    </tr>`).join('');
+    $('#rosterTable').innerHTML = head + body;
+    $('#selAll')?.addEventListener('change', e=>{
+      $all('.selRow').forEach(cb=>cb.checked = e.target.checked);
+    });
+    $all('#rosterTable [data-act]').forEach(btn=>btn.addEventListener('click', e=>{
+      const tr = e.target.closest('tr');
+      const id = tr.getAttribute('data-id');
+      const act = e.target.getAttribute('data-act');
+      setStatus(id, act.toUpperCase());
+    }));
+  }
+
+  function labelStatus(s){
+    if(s==='PRESENT') return '<span class="label ok">Present</span>';
+    if(s==='LATE') return '<span class="label late">Late</span>';
+    if(s==='EXCUSED') return '<span class="label exc">Excused</span>';
+    return '<span class="label abs">Absent</span>';
+  }
+
+  function setStatus(id, status){
+    const st = roster.find(x=>x.id===id); if(!st) return;
+    st.status = status==='ABSENT'?'ABSENT':status; st.t = new Date();
+    audit.push({type:'OVERRIDE', msg:`${st.name} → ${status}`, ts:new Date()});
+    updateKPIs(); renderRosterTable(); renderAudit(); toast('Updated');
+  }
+
+  function openSession(){
+    if(sessionOpen) return;
+    sessionOpen = true; $('#btnOpen').disabled = true; $('#btnClose').disabled = false; $('#btnOpen2').disabled = true; $('#btnClose2').disabled=false; $('#sessionStatus').textContent='Open';
+    audit.push({type:'SESSION', msg:'Session opened', ts:new Date()}); renderAudit();
+    // start simulated taps
+    startSim(); toast('Session opened');
+  }
+  function closeSession(){
+    if(!sessionOpen) return;
+    sessionOpen = false; $('#btnOpen').disabled = false; $('#btnClose').disabled = true; $('#btnOpen2').disabled = false; $('#btnClose2').disabled=true; $('#sessionStatus').textContent='Closed';
+    audit.push({type:'SESSION', msg:'Session closed', ts:new Date()}); renderAudit(); toast('Session closed');
+  }
+
+  let simTimer = null;
+  function startSim(){
+    clearInterval(simTimer);
+    simTimer = setInterval(()=>{
+      if(!sessionOpen) return;
+      const remaining = roster.filter(r=>r.status==='ABSENT');
+      if(!remaining.length){ clearInterval(simTimer); return; }
+      const pick = remaining[Math.floor(Math.random()*remaining.length)];
+      const ts = new Date();
+      const status = Math.random() < 0.15 ? 'LATE' : 'PRESENT';
+      pick.status = status; pick.t = ts;
+      taps.unshift({ name: pick.name, sid: pick.sid, status, ts });
+      audit.push({type:'TAP', msg:`${pick.name} ${status==='PRESENT'?'checked in':'late check-in'}`, ts});
+      updateKPIs(); renderFeed(); renderRosterTable(); renderAudit();
+    }, 1800);
+  }
+
+  function resetRoster(){
+    roster.forEach(r=>{ r.status='ABSENT'; r.t=null; });
+    taps.length = 0; updateKPIs(); renderFeed(); renderRosterTable(); toast('Roster reset');
+  }
+
+  function exportCSV(){
+    const rows = [['Name','Student ID','Status','Time']].concat(
+      roster.map(r=>[r.name,r.sid,r.status,r.t?timeStr(r.t):''])
+    );
+    const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'attendance.csv'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),200);
+  }
+
+  function printRoster(){
+    const html = `<html><head><meta charset='utf-8'><title>Roster</title>
+      <style>body{font-family:Calibri,Arial,sans-serif;margin:24px}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #999;padding:8px 10px;text-align:left}
+      th{background:#eee}</style></head><body>
+      <h2>Roster — ${courses.find(c=>c.id===activeCourseId).code}</h2>
+      <table><tr><th>Name</th><th>Student ID</th><th>Status</th><th>Time</th></tr>
+      ${roster.map(r=>`<tr><td>${r.name}</td><td>${r.sid}</td><td>${r.status}</td><td>${r.t?timeStr(r.t):''}</td></tr>`).join('')}
+      </table></body></html>`;
+    const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.focus(); w.print();
+  }
+
+  function syncCanvas(){
+    canvasSync = 'syncing'; updateTopbar(); $('#canvasStatusText').textContent='Syncing…';
+    setTimeout(()=>{
+      const ok = Math.random()>0.1; canvasSync = ok? 'ok' : 'error'; updateTopbar();
+      syncHistory.unshift({ ts:new Date(), ok, count: roster.filter(r=>r.status==='PRESENT'||r.status==='LATE'||r.status==='EXCUSED').length });
+      renderSyncHistory(); $('#canvasStatusText').textContent = ok? 'Synced' : 'Failed (mock)'; toast(ok?'Synced to Canvas':'Sync failed');
+      setTimeout(()=>{ canvasSync='idle'; updateTopbar(); $('#canvasStatusText').textContent=''; }, 2500);
+    }, 1000);
+  }
+
+  function renderSyncHistory(){
+    const box = $('#syncHistory');
+    if(!syncHistory.length){ box.innerHTML='<div class="muted">No syncs yet.</div>'; return; }
+    box.innerHTML = syncHistory.map(s=>`<div class="row" style="border-bottom:1px solid var(--border); padding:8px 0">
+      <div>${s.ok?'<span class="label ok">OK</span>':'<span class="label abs">Error</span>'}</div>
+      <div class="muted">${timeStr(s.ts)}</div>
+      <div class="right">${s.count} records</div>
+    </div>`).join('');
+  }
+
+  // Manual modal
+  function openManual(){ $('#modalManual').style.display='flex'; $('#manualSearch').focus(); }
+  function closeManual(){ $('#modalManual').style.display='none'; $('#manualList').innerHTML='Type to search…'; $('#manualSearch').value=''; }
+  $('#manualCancel').addEventListener('click', closeManual);
+  $('#manualSearch').addEventListener('input', e=>{
+    const q = e.target.value.trim().toLowerCase();
+    if(!q){ $('#manualList').innerHTML='Type to search…'; return; }
+    const found = roster.filter(r=>r.name.toLowerCase().includes(q)||r.sid.toLowerCase().includes(q));
+    if(!found.length){ $('#manualList').innerHTML = '<div class="muted">No matches</div>'; return; }
+    $('#manualList').innerHTML = found.map(r=>`<div class="row between" style="border-bottom:1px solid var(--border); padding:8px 0">
+      <div><b>${r.name}</b> <span class="muted">${r.sid}</span></div>
+      <div><button data-id="${r.id}" data-s="PRESENT">Present</button> <button data-id="${r.id}" data-s="LATE">Late</button> <button data-id="${r.id}" data-s="EXCUSED">Excused</button></div>
+    </div>`).join('');
+    $all('#manualList [data-id]').forEach(btn=>btn.addEventListener('click', ev=>{
+      const id = ev.target.getAttribute('data-id'); const s = ev.target.getAttribute('data-s'); setStatus(id, s); closeManual();
+    }));
+  });
+
+  // Events wiring
+  window.addEventListener('hashchange', setNav);
+  $('#courseSelect').addEventListener('change', e=>{ activeCourseId = e.target.value; $('#courseSelect2').value=activeCourseId; updateTopbar(); toast('Course changed'); });
+  $('#courseSelect2').addEventListener('change', e=>{ activeCourseId = e.target.value; $('#courseSelect').value=activeCourseId; updateTopbar(); toast('Course changed'); });
+  $('#windowMins').addEventListener('change', e=>{ windowMins = parseInt(e.target.value||'15',10); $('#windowMins2').value=windowMins; toast('Window updated'); });
+  $('#windowMins2').addEventListener('change', e=>{ windowMins = parseInt(e.target.value||'15',10); $('#windowMins').value=windowMins; toast('Window updated'); });
+  $('#lateMins').addEventListener('change', e=>{ lateThresholdMins = parseInt(e.target.value||'10',10); $('#lateMins2').value=lateThresholdMins; toast('Late threshold updated'); });
+  $('#lateMins2').addEventListener('change', e=>{ lateThresholdMins = parseInt(e.target.value||'10',10); $('#lateMins').value=lateThresholdMins; toast('Late threshold updated'); });
+  $('#btnOpen').addEventListener('click', openSession);
+  $('#btnOpen2').addEventListener('click', openSession);
+  $('#btnClose').addEventListener('click', closeSession);
+  $('#btnClose2').addEventListener('click', closeSession);
+  $('#btnReset').addEventListener('click', resetRoster);
+  $('#btnExportCSV').addEventListener('click', exportCSV);
+  $('#btnPrint').addEventListener('click', printRoster);
+  $('#btnSyncCanvas').addEventListener('click', syncCanvas);
+  $('#btnSyncCanvas2').addEventListener('click', syncCanvas);
+  $('#btnGenQR').addEventListener('click', ()=>toast('QR generated (mock)'));
+  $('#btnManual').addEventListener('click', openManual);
+  $('#search').addEventListener('input', renderRosterTable);
+  $('#filterStatus').addEventListener('change', renderRosterTable);
+  $('#btnPresent').addEventListener('click', ()=>bulkSet('PRESENT'));
+  $('#btnAbsent').addEventListener('click', ()=>bulkSet('ABSENT'));
+  $('#btnExcuse').addEventListener('click', ()=>bulkSet('EXCUSED'));
+  $('#openHelp').addEventListener('click', ()=>alert('This is a UI-only mock. Hook up API endpoints for real data.'));
+  $('#reportType').addEventListener('change', ()=>$('#reportArea').textContent='');
+  $('#btnRunReport').addEventListener('click', runReport);
+  $('#btnExportReport').addEventListener('click', exportReportCSV);
+
+  function bulkSet(status){
+    const ids = $all('.selRow').map((c,i)=>c.checked && c.closest('tr').getAttribute('data-id')).filter(Boolean);
+    if(!ids.length){ toast('Select rows first'); return; }
+    ids.forEach(id=>setStatus(id, status));
+  }
+
+  function runReport(){
+    const type = $('#reportType').value;
+    if(type==='Attendance by Session'){
+      const present = roster.filter(r=>r.status==='PRESENT').length;
+      const late = roster.filter(r=>r.status==='LATE').length;
+      const exc = roster.filter(r=>r.status==='EXCUSED').length;
+      const abs = roster.length - present - late - exc;
+      $('#reportArea').innerHTML = `<div class="kpi"><b>${present}</b> Present</div> <div class="kpi"><b>${late}</b> Late</div> <div class="kpi"><b>${exc}</b> Excused</div> <div class="kpi"><b>${abs}</b> Absent</div>`;
+    } else {
+      $('#reportArea').innerHTML = `<table class="table"><tr><th>Name</th><th>ID</th><th>Status</th></tr>${roster.map(r=>`<tr><td>${r.name}</td><td>${r.sid}</td><td>${r.status}</td></tr>`).join('')}</table>`;
+    }
+  }
+
+  function exportReportCSV(){
+    const rows = [['Type','Present','Late','Excused','Absent']];
+    const present = roster.filter(r=>r.status==='PRESENT').length;
+    const late = roster.filter(r=>r.status==='LATE').length;
+    const exc = roster.filter(r=>r.status==='EXCUSED').length;
+    const abs = roster.length - present - late - exc;
+    rows.push(['Session Totals',present,late,exc,abs]);
+    const csv = rows.map(r=>r.join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='report.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),200);
+  }
+
+  // Initial render
+  populateCourseSelects();
+  setNav();
+  updateTopbar();
+  updateKPIs();
+  renderFeed();
+  renderRosterTable();
+  renderReaders();
+  renderAudit();
+  renderSyncHistory();
+  </script>
+</body>
+</html>
